@@ -27,6 +27,7 @@ int maximum(int a, int b) {
 
 void* threadReceivingBehaviour(void* t_data) {
   struct thread_receiving_data *th_data = (struct thread_receiving_data*)t_data;
+  int mpi_result;
   // printf("GIVEN DATA:\nid: %d, T: %d, T_in: %d, m: %d\n", *(*th_data).id, *(*th_data).T, *(*th_data).T_in, *(*th_data).m);
 
   int* msg_req = (int*)(malloc((MSG_REQUEST_SIZE + 1) * sizeof(int)));
@@ -34,7 +35,7 @@ void* threadReceivingBehaviour(void* t_data) {
   MPI_Status status;
 
   while (1) {
-    MPI_Recv(msg_req, MSG_REQUEST_SIZE, MPI_INT, MPI_ANY_SOURCE, MSG_REQUEST, MPI_COMM_WORLD, &status);
+    mpi_result = MPI_Recv(msg_req, MSG_REQUEST_SIZE, MPI_INT, MPI_ANY_SOURCE, MSG_REQUEST, MPI_COMM_WORLD, &status);
     printf("[REQ-RECV] %d: Od narciarza %d czas %d\n", *(*th_data).id, msg_req[MSG_ID], msg_req[MSG_T]);
 
     pthread_mutex_lock(&(*th_data).dataMutex);
@@ -47,7 +48,8 @@ void* threadReceivingBehaviour(void* t_data) {
       msg_acc[MSG_T] = *(*th_data).T_in;
     }
     printf("[ACC-SEND] %d: Do narciarza %d czas %d i masa %d\n", *(*th_data).id, msg_req[MSG_ID], msg_acc[MSG_T], msg_acc[MSG_M]);
-    MPI_Send(msg_acc, MSG_ACCEPTANCE_SIZE, MPI_INT, msg_req[MSG_ID], MSG_ACCEPTANCE, MPI_COMM_WORLD);
+    mpi_result = MPI_Send(msg_acc, MSG_ACCEPTANCE_SIZE, MPI_INT, msg_req[MSG_ID], MSG_ACCEPTANCE, MPI_COMM_WORLD);
+
     pthread_mutex_unlock(&(*th_data).dataMutex);
   }
   // printf("Receiving thread terminated.\n");
@@ -94,22 +96,25 @@ void pushToQueue(QUEUE_DATA* q, bool* received, int id, int T, int m) {
 }
 
 void sendRequests(int id, int T, int m, int n, int* msg_req) {
+  int mpi_result;
+
   msg_req[MSG_ID] = id;
   msg_req[MSG_T] = T;
 
   for (int i = 0; i < n; i++) {
     if (i != id) {
       printf("[REQ-SEND] %d: Do narciarza %d czas %d\n", id, i, T);
-      MPI_Send(msg_req, MSG_REQUEST_SIZE, MPI_INT, i, MSG_REQUEST, MPI_COMM_WORLD);
+      mpi_result = MPI_Send(msg_req, MSG_REQUEST_SIZE, MPI_INT, i, MSG_REQUEST, MPI_COMM_WORLD);
     }
   }
 }
 
 void receiveAcceptances(QUEUE_DATA* q, bool* received, int* qCounter, int n, int id, pthread_mutex_t* mutex, int* msg_acc, MPI_Status* status) {
   int id_j;
+  int mpi_result;
 
   while (*qCounter < n) {
-    MPI_Recv(msg_acc, MSG_ACCEPTANCE_SIZE, MPI_INT, MPI_ANY_SOURCE, MSG_ACCEPTANCE, MPI_COMM_WORLD, status);
+    mpi_result = MPI_Recv(msg_acc, MSG_ACCEPTANCE_SIZE, MPI_INT, MPI_ANY_SOURCE, MSG_ACCEPTANCE, MPI_COMM_WORLD, status);
     printf("[ACC-RECV] %d: Od narciarza %d czas %d i masa %d\n", id, msg_acc[MSG_ID], msg_acc[MSG_T], msg_acc[MSG_M]);
     id_j = msg_acc[MSG_ID];
     received[id_j] = true;
@@ -155,7 +160,7 @@ int main(int argc, char** argv)
     wait();
 
     // chce wsiasc
-    if (id == 0) {
+    // if (id == 0) {
       qCounter = 0;
       clearReceivedTable(is_received, n);
       pthread_mutex_lock(&dataMutex);
@@ -167,7 +172,7 @@ int main(int argc, char** argv)
       receiveAcceptances(q, is_received, &qCounter, n, id, &dataMutex, msg_acc, &status);
       sleep(2);
       printf("---------------\n");
-    }
+    // }
 
     // wsiada
 
