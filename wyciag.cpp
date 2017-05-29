@@ -1,6 +1,6 @@
-#include "mpi.h"
 #include "constants.h"
 
+#include <mpi.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,7 +9,6 @@
 
 struct QUEUE_DATA
 {
-    int id;
 		int T_in;
 		int m;
 };
@@ -24,34 +23,19 @@ struct thread_receiving_data {
 
 void* threadReceivingBehaviour(void* t_data) {
   struct thread_receiving_data *th_data = (struct thread_receiving_data*)t_data;
+  // printf("GIVEN DATA:\nid: %d, T: %d, T_in: %d, m: %d\n", *(*th_data).id, *(*th_data).T, *(*th_data).T_in, *(*th_data).m);
 
-  printf("GIVEN DATA:\nid: %d, T: %d, T_in: %d, m: %d\n", *(*th_data).id, *(*th_data).T, *(*th_data).T_in, *(*th_data).m);
+  int msg[MSG_REQUEST_SIZE];
+  MPI_Status status;
 
-//   char* buffer;
-//   int receiverID;
-//   GameManager* gameManager = (*th_data).gameManager;
-//   vector<int>* clientsDescriptors = (*th_data).clientsDescriptors;
-//   int messageLength;
-//
-//   while (1) {
+  while (1) {
+    MPI_Recv(msg, MSG_REQUEST_SIZE, MPI_INT, MPI_ANY_SOURCE, MSG_REQUEST, MPI_COMM_WORLD, &status);
+    printf("%d: Od narciarza o id %d otrzymalem czas %d\n", *(*th_data).id, msg[MSG_ID], msg[MSG_T]);
+  }
 //     pthread_mutex_lock(&(*th_data).messagesMutex);
-//     // mutex pobierający z kolejki oczekujących
-//     gameManager->update();
-//     receiverID = gameManager->getReceiverID();
-//     buffer = gameManager->getMessage();
-//     // ten sam mutex (w ogóle jeden i ten sam)
 //     pthread_mutex_unlock(&(*th_data).messagesMutex);
 //
-//     if (buffer != NULL) {
-//       printf("server.cpp: Message sent to player with ID %d: %s", receiverID, buffer);
-//       messageLength = write((*clientsDescriptors)[receiverID], buffer, strlen(buffer));
-//       if (messageLength < 0)
-//         printf("server.cpp: Error while writing to socket. Client id: %d, message: %s\n", receiverID, buffer);
-//     }
-//     free(buffer);
-//   }
-//
-  printf("Receiving thread terminated.\n");
+  // printf("Receiving thread terminated.\n");
   pthread_exit(NULL);
 }
 
@@ -72,7 +56,38 @@ void createRecevingThread(pthread_mutex_t dataMutex, int* id, int* T, int* T_in,
     printf("Error while creating receiving thread. Error code: %d\n", createResult);
 		exit(-1);
   }
-  printf("Receiving thread created.\n");
+  // printf("Receiving thread created.\n");
+}
+
+void wait() {
+  float waitingTime;
+  waitingTime = (rand() % MAX_WAITING_TIME_MS) * 1000;
+  usleep(waitingTime);
+}
+
+void clearReceivedTable(bool* table, int n) {
+  for (int i = 0; i < n; i++) {
+    table[i] = false;
+  }
+}
+
+void pushToQueue(QUEUE_DATA* q, bool* received, int id, int T, int m) {
+  received[id] = true;
+  q[id].T_in = T;
+  q[id].m = m;
+}
+
+void sendRequests(int id, int T, int m, int n) {
+  int msg[MSG_REQUEST_SIZE];
+
+  msg[MSG_ID] = id;
+  msg[MSG_T] = T;
+
+  for (int i = 0; i < n; i++) {
+    if (i != id) {
+      MPI_Send(msg, MSG_REQUEST_SIZE, MPI_INT, i, MSG_REQUEST, MPI_COMM_WORLD);
+    }
+  }
 }
 
 int main(int argc, char** argv)
@@ -84,6 +99,9 @@ int main(int argc, char** argv)
 	int n; // jak duzo narciarzy udalo sie uruchomic
 
 	MPI_Status status;
+
+  T = 0;
+  T_in = 0;
 
   srand(time(NULL));
 
@@ -98,23 +116,18 @@ int main(int argc, char** argv)
   m = rand() % (M_MAX + 1 - M_MIN) + M_MIN;
 
   createRecevingThread(dataMutex, &id, &T, &T_in, &m);
-	// int receiver = (rank + 1) % n;
-	// int sender = (rank + n - 1) % n;
 
-	// if (rank == root)
-	// {
-	// 	MPI_Comm_size( MPI_COMM_WORLD, &size );
-	// 	printf("%d: Wysylam %d do %d\n", rank, msg, receiver);
-	// 	MPI_Send(&msg, MSG_SIZE, MPI_INT, receiver, MSG_HELLO, MPI_COMM_WORLD );
-	// }
-	// while (msg < max - n) {
-	// 	MPI_Recv(&msg, MSG_SIZE, MPI_INT, sender, MSG_HELLO, MPI_COMM_WORLD, &status);
-	// 	printf("%d: Otrzymalem %d, ", rank, msg);
-	// 	msg += 1;
-	// 	MPI_Comm_size( MPI_COMM_WORLD, &size );
-	// 	printf("%d: Wysylam %d do %d\n", rank, msg, receiver);
-	// 	MPI_Send(&msg, MSG_SIZE, MPI_INT, receiver, MSG_HELLO, MPI_COMM_WORLD );
-	// }
+  while (1) {
+    wait();
+
+    // chce wsiasc
+    clearReceivedTable(is_received, n);
+    T_in = T;
+    pushToQueue(q, is_received, id, T_in, m);
+    if (id == 0)
+    sendRequests(id, T_in, m, n);
+    sleep(10);
+  }
 
 	MPI_Finalize();
 }
