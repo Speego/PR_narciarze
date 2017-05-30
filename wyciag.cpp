@@ -128,21 +128,22 @@ void receiveAcceptances(QUEUE_DATA* q, bool* received, int* qCounter, int n, int
 
 int main(int argc, char** argv)
 {
-	int id; // unikalne id (rank) narciarza
-	int T; // aktualny zegar skalarny Lamporta
-	int T_in; // etykieta czasowa, w ktorej proces ostatnio chcial wejsc na wyciag
-	int m; // masa narciarza
-	int n; // jak duzo narciarzy udalo sie uruchomic
+  int id; // unikalne id (rank) narciarza
+  int T; // aktualny zegar skalarny Lamporta
+  int T_in; // etykieta czasowa, w ktorej proces ostatnio chcial wejsc na wyciag
+  int m; // masa narciarza
+  int n; // jak duzo narciarzy udalo sie uruchomic
   int qCounter = 0; // ile acceptance dostalismy
+  int threadSupportLevel; // zapewniony poziom wsparcia watkow
 
   T = 0;
   T_in = 0;
 
   srand(time(NULL));
 
-	MPI_Init(&argc, &argv);
-	MPI_Comm_rank(MPI_COMM_WORLD, &id);
-	MPI_Comm_size(MPI_COMM_WORLD, &n);
+  MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &threadSupportLevel);
+  MPI_Comm_rank(MPI_COMM_WORLD, &id);
+  MPI_Comm_size(MPI_COMM_WORLD, &n);
 
   MPI_Status status;
   pthread_mutex_t dataMutex = PTHREAD_MUTEX_INITIALIZER;
