@@ -156,7 +156,9 @@ void receiveAcceptances(QUEUE_DATA* q, bool* received, int* qCounter, int n, int
     mpi_result = MPI_Recv(msgAcc, MSG_ACCEPTANCE_SIZE, MPI_INT, MPI_ANY_SOURCE, MSG_ACCEPTANCE, MPI_COMM_WORLD, status);
     //printf("[ACC-RECV] %d: Od narciarza %d czas %d i masa %d\n", id, msgAcc[MSG_ID], msgAcc[MSG_T], msgAcc[MSG_M]);
     id_j = msgAcc[MSG_ID];
-    received[id_j] = true;
+    if ((msgAcc[MSG_M] != INT_MAX) || (received[id_j])){
+      received[id_j] = true;
+    }
     q[id_j].T_in = msgAcc[MSG_T];
     q[id_j].m = msgAcc[MSG_M];
     pthread_mutex_lock(mutex);
@@ -217,5 +219,5 @@ int main(int argc, char** argv)
       wait();
   }
 
-	MPI_Finalize();
+  MPI_Finalize();
 }
