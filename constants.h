@@ -1,4 +1,4 @@
-#define N 120 // nosnosc wyciagu
+#define N 200 // nosnosc wyciagu
 #define M_MAX 90
 #define M_MIN 40
 #define MAX_WAITING_TIME_MS 1000

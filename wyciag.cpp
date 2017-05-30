@@ -154,9 +154,9 @@ void receiveAcceptances(QUEUE_DATA* q, bool* received, int* qCounter, int n, int
 
   while ( ((*qCounter = countAcc(received, n)) < n) || (weightsSum(n, id, q) > N)) {
     mpi_result = MPI_Recv(msgAcc, MSG_ACCEPTANCE_SIZE, MPI_INT, MPI_ANY_SOURCE, MSG_ACCEPTANCE, MPI_COMM_WORLD, status);
-    //printf("[ACC-RECV] %d: Od narciarza %d czas %d i masa %d\n", id, msgAcc[MSG_ID], msgAcc[MSG_T], msgAcc[MSG_M]);
+    // printf("[ACC-RECV] %d: Od narciarza %d czas %d i masa %d\n", id, msgAcc[MSG_ID], msgAcc[MSG_T], msgAcc[MSG_M]);
     id_j = msgAcc[MSG_ID];
-    if ((msgAcc[MSG_M] != INT_MAX) || (received[id_j])){
+    if ((msgAcc[MSG_T] != INT_MAX)){
       received[id_j] = true;
     }
     q[id_j].T_in = msgAcc[MSG_T];
@@ -209,10 +209,10 @@ int main(int argc, char** argv)
       sendRequests(id, T_in, m, n, msg_req);
       receiveAcceptances(q, is_received, &qCounter, n, id, &dataMutex, msg_acc, &status);
       // wsiada
-      printf("---> %d: WYCIAG +%d\n" , id, m);
+      printf("---> %d WYCIAG %d %d +%d\n", id, T_in, T, m);
       wait();
       // wysiada
-      printf("<--- %d: WYCIAG -%d\n" , id, m);
+      printf("<--- %d WYCIAG %d %d -%d\n", id, T_in, T, m);
       qCounter = 0;
       //printf("[[%d]]: COUNTER 0\n" , id);
       sendReleases(id, n);
