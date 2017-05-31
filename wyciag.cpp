@@ -111,6 +111,7 @@ void sendRequests(int id, int T, int m, int n, int* msg_req) {
 }
 
 void sendReleases(int id, int n) {
+  MPI_Request req;
   int mpi_result;
   int* msg_acc = (int*)(malloc((MSG_ACCEPTANCE_SIZE+1) * sizeof(int)));
   msg_acc[MSG_ID] = id;
@@ -120,7 +121,7 @@ void sendReleases(int id, int n) {
   for (int i = 0; i < n; i++) {
     if (i != id) {
       //printf("[REL-SEND] %d: Do narciarza %d czas MAX\n", id, i);
-      mpi_result = MPI_Send(msg_acc, MSG_ACCEPTANCE_SIZE, MPI_INT, i, MSG_ACCEPTANCE, MPI_COMM_WORLD);
+      mpi_result = MPI_Isend(msg_acc, MSG_ACCEPTANCE_SIZE, MPI_INT, i, MSG_ACCEPTANCE, MPI_COMM_WORLD, &req);
     }
   }
 }
